@@ -1,6 +1,6 @@
 # Read Me
 
-The journal paper is an extension work of the conference paper, where we showcase that we can predict MRI response from spin echo sequence and diffusion gradient directions.
+The journal paper is an extension work of the conference paper, where we showcase that we can predict MRI response from spin echo sequence and diffusion gradient directions. It is currently under review, please stay tuned for our full paper.
 
 ## Architectural Modifications
 
