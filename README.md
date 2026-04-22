@@ -191,9 +191,10 @@ python scripts/visualization/overall_perf_vis.py
   [10.1007/978-3-031-66955-2_4](https://doi.org/10.1007/978-3-031-66955-2_4).
   The conference-paper code is preserved in [`conf-paper/`](conf-paper/).
 
-- **Journal paper (in preparation):** all code at the repository root
+- **Journal paper (under review):** submitted to IOP's
+  *Physics in Medicine & Biology*. All code at the repository root
   (`architectures/`, `src/`, `scripts/`, `benchmarks/`, `splits/`)
-  corresponds to the forthcoming journal paper.
+  corresponds to this manuscript.
 
 ## Citation
 
@@ -210,9 +211,9 @@ python scripts/visualization/overall_perf_vis.py
 @article{rustamov2026mri,
   title   = {...},
   author  = {Rustamov, Jaloliddin and others},
-  journal = {...},
+  journal = {Physics in Medicine \& Biology},
   year    = {2026},
-  note    = {In preparation}
+  note    = {Under review}
 }
 ```
 
