@@ -35,7 +35,6 @@ MRI-Response-Prediction/
 ├── timing_results/         # signal-generation timing benchmarks (paper asset)
 ├── requirements.txt
 ├── environment.yml
-├── PAPER_GUIDELINES_SPIN_ECHO.md
 └── LICENSE
 ```
 
@@ -184,9 +183,6 @@ python scripts/visualization/overall_perf_vis.py
   `benchmarks/signal_gen_comp.py` + `benchmarks/deepL_comp.py`. The physics
   benchmark depends on the [VirtualMRI] package; see
   `benchmarks/signal_gen_comp.py` for its own environment requirements.
-- `PAPER_GUIDELINES_SPIN_ECHO.md` documents how to present the perfect Spin
-  Echo performance in the paper (it's a physical invariant, not data
-  leakage).
 
 ## Related publications
 
