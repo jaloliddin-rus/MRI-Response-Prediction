@@ -12,6 +12,12 @@ from tqdm import tqdm
 import argparse
 from monai.transforms import Compose, ToTensor
 
+# Force UTF-8 stdout so non-ASCII characters don't crash under Windows cp1252.
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
+
 # Make the project root importable so src/ and architectures/ resolve
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 

@@ -5,6 +5,7 @@ analysis scripts. Keep this one copy in sync; every consumer should
 `from src.dataset import TiffDataset, custom_collate`.
 """
 
+import os
 import numpy as np
 import torch
 import SimpleITK as sitk
@@ -32,7 +33,32 @@ class TiffDataset(Dataset):
     11 diffusion-signal time-series (one per gradient direction).
     """
 
-    def __init__(self, data, transform=None):
+    def __init__(
+        self,
+        data,
+        transform=None,
+        b_value=None,
+        small_delta=None,
+        big_delta=None,
+        include_animal_chunk=False,
+    ):
+        """
+        Parameters
+        ----------
+        data : list[dict]
+            Entries with keys 'images' (list of TIFF paths) and 'label'
+            (path to signals_journal.npy).
+        transform : callable or None
+            Applied to each loaded 3D volume.
+        b_value, small_delta, big_delta : float or None
+            If all three are provided, only signal rows matching those
+            acquisition parameters are kept. Useful for plotting a single
+            (b, δ, Δ) condition.
+        include_animal_chunk : bool
+            If True, each stored sample gets an extra 'animal_chunk' field
+            (e.g. "K3/chunk_0") derived from the first TIFF path. Needed by
+            scripts that map dataset indices back to source structures.
+        """
         self.data = []
         self.transform = transform
 
@@ -40,6 +66,10 @@ class TiffDataset(Dataset):
         self.small_delta_range = SMALL_DELTA_RANGE
         self.big_delta_range = BIG_DELTA_RANGE
         self.phi_theta_list = PHI_THETA_LIST
+
+        filter_active = (
+            b_value is not None and small_delta is not None and big_delta is not None
+        )
 
         for item in data:
             tiff_files = item['images']
@@ -49,13 +79,21 @@ class TiffDataset(Dataset):
             if npy_data.ndim == 0:
                 npy_data = npy_data.item()
 
+            if filter_active:
+                rows = [
+                    r for r in npy_data
+                    if r[1] == b_value and r[2] == small_delta and r[3] == big_delta
+                ]
+            else:
+                rows = npy_data
+
             grouped_data = {}
-            for row in npy_data:
+            for row in rows:
                 row_tuple = tuple(row.item())
                 key = (row_tuple[1], row_tuple[2], row_tuple[3])  # (b, δ, Δ)
                 grouped_data.setdefault(key, []).append(row_tuple)
 
-            for (b, small_delta, big_delta), group in grouped_data.items():
+            for (b, sd, bd), group in grouped_data.items():
                 signals = []
                 for phi, theta in self.phi_theta_list:
                     found = False
@@ -70,24 +108,29 @@ class TiffDataset(Dataset):
                     signals = np.array(signals, dtype=np.float32)
 
                     norm_b = (b - self.b_range[0]) / (self.b_range[1] - self.b_range[0])
-                    norm_small_delta = (small_delta - self.small_delta_range[0]) / (
+                    norm_small_delta = (sd - self.small_delta_range[0]) / (
                         self.small_delta_range[1] - self.small_delta_range[0]
                     )
-                    norm_big_delta = (big_delta - self.big_delta_range[0]) / (
+                    norm_big_delta = (bd - self.big_delta_range[0]) / (
                         self.big_delta_range[1] - self.big_delta_range[0]
                     )
                     mri_params = np.array(
                         [norm_b, norm_small_delta, norm_big_delta], dtype=np.float32
                     )
 
-                    self.data.append({
+                    sample = {
                         'images': tiff_files,
                         'signals': signals,
                         'mri_params': mri_params,
                         'original_params': np.array(
-                            [b, small_delta, big_delta], dtype=np.float32
+                            [b, sd, bd], dtype=np.float32
                         ),
-                    })
+                    }
+
+                    if include_animal_chunk:
+                        sample['animal_chunk'] = _animal_chunk_from_tiff(tiff_files[0])
+
+                    self.data.append(sample)
 
     def __len__(self):
         return len(self.data)
@@ -114,12 +157,15 @@ class TiffDataset(Dataset):
         mri_params = torch.from_numpy(item['mri_params']).float()
         original_params = torch.from_numpy(item['original_params']).float()
 
-        return {
+        out = {
             "images": volume_4d,
             "mri_params": mri_params,
             "label": signals,
             "original_params": original_params,
         }
+        if 'animal_chunk' in item:
+            out['animal_chunk'] = item['animal_chunk']
+        return out
 
     @staticmethod
     def load_3d_tiff(tiff_path):
@@ -127,11 +173,27 @@ class TiffDataset(Dataset):
         return sitk.GetArrayFromImage(image)
 
 
+def _animal_chunk_from_tiff(tiff_path):
+    """Return "<animal>/<chunk>" for a path like `data/K3/chunk_0/binary.tiff`."""
+    parts = tiff_path.replace('\\', '/').split('/')
+    if len(parts) >= 3:
+        return f"{parts[-3]}/{parts[-2]}"
+    return "unknown/unknown"
+
+
 def custom_collate(batch):
-    """Stack dict-valued samples into dict-of-tensors batches."""
-    return {
+    """Stack dict-valued samples into dict-of-tensors batches.
+
+    If the samples include an 'animal_chunk' string (present when the dataset
+    was built with include_animal_chunk=True), it is returned as a list under
+    'animal_chunks'.
+    """
+    out = {
         'images': torch.stack([item['images'] for item in batch]),
         'mri_params': torch.stack([item['mri_params'] for item in batch]),
         'label': torch.stack([item['label'] for item in batch]),
         'original_params': torch.stack([item['original_params'] for item in batch]),
     }
+    if batch and 'animal_chunk' in batch[0]:
+        out['animal_chunks'] = [item['animal_chunk'] for item in batch]
+    return out

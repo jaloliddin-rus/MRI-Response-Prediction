@@ -216,7 +216,7 @@ python scripts/visualization/overall_perf_vis.py
   title     = {Learning-Based MRI Response Predictions from OCT Microvascular
                Models to Replace Simulation-Based Frameworks},
   author    = {Rustamov, Jaloliddin and others},
-  booktitle = {...},
+  booktitle = {Lecture Notes in Computer Science},
   year      = {2024},
   doi       = {10.1007/978-3-031-66955-2_4}
 }

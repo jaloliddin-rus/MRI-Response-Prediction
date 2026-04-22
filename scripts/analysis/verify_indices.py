@@ -14,13 +14,19 @@ import torch
 import argparse
 import pickle
 from monai.transforms import Compose, ToTensor
-from torch.utils.data import Dataset, Subset
-import SimpleITK as sitk
+from torch.utils.data import Subset
 from sklearn.metrics import r2_score
 import pandas as pd
 import sys
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from architectures.DenseNet import DenseNet169
+from src.dataset import TiffDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,116 +41,6 @@ def parse_args():
     parser.add_argument('--optimizer', type=str, default='Adam',
                        help='Optimizer')
     return parser.parse_args()
-
-class TiffDataset(Dataset):
-    def __init__(self, data, transform=None):
-        self.data = []
-        self.transform = transform
-
-        # Define normalization ranges
-        self.b_range = [50, 500]
-        self.small_delta_range = [1, 2]
-        self.big_delta_range = [4, 7]
-
-        # Predefined phi and theta combinations
-        self.phi_theta_list = [
-            (0, 0), (0, 90), (45, 45), (45, 90), (45, 135),
-            (90, 45), (90, 90), (90, 135), (135, 45), (135, 90), (135, 135),
-        ]
-
-        for item in data:
-            tiff_files = item['images']
-            npy_file = item['label']
-            npy_data = np.load(npy_file, allow_pickle=True)
-
-            if npy_data.ndim == 0:
-                npy_data = npy_data.item()
-
-            # Group data by b_value, small_delta, and big_delta
-            grouped_data = {}
-            for row in npy_data:
-                row_tuple = tuple(row.item())
-                key = (row_tuple[1], row_tuple[2], row_tuple[3])
-                if key not in grouped_data:
-                    grouped_data[key] = []
-                grouped_data[key].append(row_tuple)
-
-            for (b, small_delta, big_delta), group in grouped_data.items():
-                signals = []
-                for phi, theta in self.phi_theta_list:
-                    found = False
-                    for row in group:
-                        if row[4] == phi and row[5] == theta:
-                            signals.append(row[0])
-                            found = True
-                            break
-                    if not found:
-                        break
-                else:
-                    # All phi-theta pairs were found
-                    signals = np.array(signals, dtype=np.float32)
-
-                    # Normalize parameters
-                    norm_b = (b - self.b_range[0]) / (self.b_range[1] - self.b_range[0])
-                    norm_small_delta = (small_delta - self.small_delta_range[0]) / (self.small_delta_range[1] - self.small_delta_range[0])
-                    norm_big_delta = (big_delta - self.big_delta_range[0]) / (self.big_delta_range[1] - self.big_delta_range[0])
-
-                    # Store MRI parameters as scalar values
-                    mri_params = np.array([norm_b, norm_small_delta, norm_big_delta], dtype=np.float32)
-
-                    # Extract animal/chunk info
-                    sample_path = tiff_files[0]
-                    path_parts = sample_path.replace('\\', '/').split('/')
-                    animal_chunk = "unknown/unknown"
-                    if len(path_parts) >= 3:
-                        animal = path_parts[-3]
-                        chunk = path_parts[-2]
-                        animal_chunk = f"{animal}/{chunk}"
-
-                    self.data.append({
-                        'images': tiff_files,
-                        'signals': signals,
-                        'mri_params': mri_params,
-                        'original_params': np.array([b, small_delta, big_delta], dtype=np.float32),
-                        'animal_chunk': animal_chunk,
-                        'tiff_files': tiff_files  # Store for verification
-                    })
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        item = self.data[index]
-        if not hasattr(self, 'cached_images'):
-            self.cached_images = {}
-        image_key = tuple(item['images'])
-        if image_key not in self.cached_images:
-            volumes = [self.load_3d_tiff(img) for img in item['images']]
-            if self.transform:
-                volumes = [self.transform(vol) for vol in volumes]
-            volume_4d = np.stack(volumes, axis=0).astype(np.float32)
-            self.cached_images[image_key] = volume_4d
-        else:
-            volume_4d = self.cached_images[image_key]
-
-        volume_4d = torch.from_numpy(volume_4d)
-        signals = torch.from_numpy(item['signals']).float()
-        mri_params = torch.from_numpy(item['mri_params']).float()
-        original_params = torch.from_numpy(item['original_params']).float()
-        animal_chunk = item['animal_chunk']
-
-        return {
-            "images": volume_4d,
-            "mri_params": mri_params,
-            "label": signals,
-            "original_params": original_params,
-            "animal_chunk": animal_chunk
-        }
-
-    @staticmethod
-    def load_3d_tiff(tiff_path):
-        image = sitk.ReadImage(tiff_path)
-        return sitk.GetArrayFromImage(image)
 
 def main():
     args = parse_args()
@@ -169,7 +65,7 @@ def main():
     
     # Create dataset (same as both scripts)
     test_transforms = Compose([ToTensor()])
-    test_ds = TiffDataset(data_list, transform=test_transforms)
+    test_ds = TiffDataset(data_list, transform=test_transforms, include_animal_chunk=True)
     test_dataset = Subset(test_ds, test_indices)
     
     print(f"Dataset created with {len(test_ds.data)} processed samples")
@@ -221,7 +117,7 @@ def main():
         big_delta = sample['original_params'][2].item()
         
         # Get file paths
-        tiff_files = full_data_entry['tiff_files']
+        tiff_files = full_data_entry['images']
         first_file = tiff_files[0]
         
         # Run model prediction

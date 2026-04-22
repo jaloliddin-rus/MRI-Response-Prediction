@@ -21,17 +21,17 @@ import argparse
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from monai.transforms import Compose, ToTensor
-from torch.utils.data import Dataset, Subset, DataLoader
-import SimpleITK as sitk
+from torch.utils.data import Subset, DataLoader
 from statistics import mean, stdev
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from typing import Dict, Optional, Tuple
-# Import architectures
+# Import architectures and shared dataset / collate
 from architectures.Regressor import CustomRegressor
 from architectures.BasicUNet import BasicUNet
 from architectures.AutoEncoder import AutoEncoder
 from architectures.DenseNet import DenseNet169
 from architectures.EfficientNet import EfficientNetBN
+from src.dataset import TiffDataset, custom_collate
 
 
 def _parse_float(value) -> Optional[float]:
@@ -93,116 +93,6 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, default='timing_results',
                         help='Directory to save comparison results')
     return parser.parse_args()
-
-class TiffDataset(Dataset):
-    """Dataset class for loading TIFF images and MRI parameters"""
-    def __init__(self, data, transform=None):
-        self.data = []
-        self.transform = transform
-        
-        # Define normalization ranges
-        self.b_range = [50, 500]
-        self.small_delta_range = [1, 2]
-        self.big_delta_range = [4, 7]
-        
-        # Predefined phi and theta combinations
-        self.phi_theta_list = [
-            (0, 0), (0, 90), (45, 45), (45, 90), (45, 135),
-            (90, 45), (90, 90), (90, 135), (135, 45), (135, 90), (135, 135),
-        ]
-        
-        for item in data:
-            tiff_files = item['images']
-            npy_file = item['label']
-            npy_data = np.load(npy_file, allow_pickle=True)
-            
-            if npy_data.ndim == 0:
-                npy_data = npy_data.item()
-            
-            # Group data by b_value, small_delta, and big_delta
-            grouped_data = {}
-            for row in npy_data:
-                row_tuple = tuple(row.item())
-                key = (row_tuple[1], row_tuple[2], row_tuple[3])  # (b_value, small_delta, big_delta)
-                if key not in grouped_data:
-                    grouped_data[key] = []
-                grouped_data[key].append(row_tuple)
-            
-            for (b, small_delta, big_delta), group in grouped_data.items():
-                signals = []
-                for phi, theta in self.phi_theta_list:
-                    found = False
-                    for row in group:
-                        if row[4] == phi and row[5] == theta:
-                            signals.append(row[0])
-                            found = True
-                            break
-                    if not found:
-                        break
-                else:
-                    # All phi-theta pairs were found
-                    signals = np.array(signals, dtype=np.float32)
-                    
-                    # Normalize parameters
-                    norm_b = (b - self.b_range[0]) / (self.b_range[1] - self.b_range[0])
-                    norm_small_delta = (small_delta - self.small_delta_range[0]) / (self.small_delta_range[1] - self.small_delta_range[0])
-                    norm_big_delta = (big_delta - self.big_delta_range[0]) / (self.big_delta_range[1] - self.big_delta_range[0])
-                    
-                    # Store MRI parameters as scalar values
-                    mri_params = np.array([norm_b, norm_small_delta, norm_big_delta], dtype=np.float32)
-                    
-                    self.data.append({
-                        'images': tiff_files,
-                        'signals': signals,
-                        'mri_params': mri_params,
-                        'original_params': np.array([b, small_delta, big_delta], dtype=np.float32)
-                    })
-    
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, index):
-        item = self.data[index]
-        if not hasattr(self, 'cached_images'):
-            self.cached_images = {}
-        image_key = tuple(item['images'])
-        if image_key not in self.cached_images:
-            volumes = [self.load_3d_tiff(img) for img in item['images']]
-            if self.transform:
-                volumes = [self.transform(vol) for vol in volumes]
-            volume_4d = np.array(volumes)
-            self.cached_images[image_key] = volume_4d
-        else:
-            volume_4d = self.cached_images[image_key]
-        
-        volume_4d = torch.from_numpy(volume_4d).float()
-        signals = torch.from_numpy(item['signals']).float()
-        mri_params = torch.from_numpy(item['mri_params']).float()
-        
-        return {
-            "images": volume_4d,
-            "mri_params": mri_params,
-            "label": signals,
-            "original_params": item['original_params']
-        }
-    
-    @staticmethod
-    def load_3d_tiff(tiff_path):
-        image = sitk.ReadImage(tiff_path)
-        return sitk.GetArrayFromImage(image)
-
-def custom_collate(batch):
-    """Custom collate function for DataLoader"""
-    images = torch.stack([item['images'] for item in batch])
-    mri_params = torch.stack([item['mri_params'] for item in batch])
-    labels = torch.stack([item['label'] for item in batch])
-    original_params = [item['original_params'] for item in batch]
-    return {
-        'images': images,
-        'mri_params': mri_params,
-        'label': labels,
-        'original_params': original_params
-    }
 
 def benchmark_deep_learning_prediction(batch_size):
     """Benchmark deep learning model prediction time for best performing combinations"""

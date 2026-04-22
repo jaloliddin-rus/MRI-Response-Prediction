@@ -6,8 +6,15 @@ this proves the result is due to data characteristics, not architectural artifac
 """
 
 import os
+import sys
 import pandas as pd
 import numpy as np
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
+
 
 def compare_architectures():
     """Compare Spin Echo performance across all architectures"""

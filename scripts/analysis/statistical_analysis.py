@@ -11,6 +11,7 @@ Created: January 2026
 """
 
 import os
+import sys
 import pickle
 import numpy as np
 import pandas as pd
@@ -22,6 +23,12 @@ from itertools import combinations
 import warnings
 warnings.filterwarnings('ignore')
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 

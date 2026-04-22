@@ -7,6 +7,11 @@ import os
 import subprocess
 import sys
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
+
 # Define all model configurations
 models = [
     # Regressor

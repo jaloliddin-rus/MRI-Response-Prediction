@@ -7,6 +7,7 @@ across all MRI parameters, which is a physical property of zero diffusion weight
 """
 
 import os
+import sys
 import argparse
 import numpy as np
 import pandas as pd
@@ -14,6 +15,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 import pickle
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
 
 
 def discover_animal_dirs(data_dir):
