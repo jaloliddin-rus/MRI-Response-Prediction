@@ -39,18 +39,8 @@ MRI-Response-Prediction/
 └── LICENSE
 ```
 
-The following directories are **not** committed (they're in `.gitignore`):
-
-| Directory     | Purpose                                  | Approx. size |
-|---------------|------------------------------------------|--------------|
-| `data/`       | Raw TIFF volumes + `signals_journal.npy` | ~47 GB       |
-| `models/`     | Trained `.pth` checkpoints               | ~1.6 GB      |
-| `cache/`      | Per-chunk `.npy` volume cache            | ~200 MB      |
-| `results/`    | Per-model MSE/MAE pickles, CSVs, figures | ~115 MB      |
-| `output/`     | Miscellaneous run outputs                | small        |
-
 Users who want to reproduce results should contact the authors for the
-dataset and pretrained weights.
+dataset (can be shared upon reasonable request) and pretrained weights (can be shared).
 
 ## Installation
 
