@@ -50,6 +50,9 @@ RegModel_flow.sav
 *.mha
 *.mhd
 
+# --- Stray plot outputs written to the project root by some scripts ---
+/neural_network_radar_chart.png
+
 # --- Python bytecode / caches ---
 __pycache__/
 */__pycache__/
