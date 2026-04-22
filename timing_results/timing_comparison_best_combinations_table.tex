@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Computational time comparison: physics-based simulation vs deep learning prediction (best performing combinations)}
+\label{tab:timing_comparison_best}
+\begin{tabular}{llccccc}
+\hline
+\textbf{Method} & \textbf{Configuration} & \textbf{Avg Time (s)} & \textbf{Std (s)} & \textbf{R$^2$ Score} & \textbf{Speedup} \\
+\hline
+Physics-based Simulation & VirtualMRI + Graph Processing & 258.2085 & 4.3066 & -- & 1\times \\
+DenseNet169 & HuberLoss + AdamW & 0.0027 & 0.000867 & 0.92 & 94518\times \\
+BasicUNet & HuberLoss + AdamW & 0.0069 & 0.0011 & 0.89 & 37662\times \\
+EfficientNetB4 & CustomL1Loss + Adam & 0.0021 & 0.000365 & 0.88 & 123204\times \\
+Regressor & CustomL1Loss + Adam & 0.000444 & 0.000058 & 0.88 & 581328\times \\
+AutoEncoder & MSELoss + AdamW & 0.0056 & 0.0023 & 0.87 & 45766\times \\
+\hline
+\multicolumn{6}{l}{\footnotesize Speedup calculated as: (Physics-based time) / (Deep learning time).} \\
+\end{tabular}
+\end{table}

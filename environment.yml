@@ -1,0 +1,25 @@
+# =============================================================================
+# Conda environment for the MRI Signal Prediction project.
+#
+# Quick-start:
+#     conda env create -f environment.yml
+#     conda activate mri_journal
+#     pip install --index-url https://download.pytorch.org/whl/cu126 \
+#         torch==2.8.0 torchvision==0.23.0
+#     pip install -r requirements.txt
+#
+# The conda layer only pins Python + pip; every Python package is resolved
+# through requirements.txt so the two files cannot drift out of sync.
+# =============================================================================
+
+name: mri_journal
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - -r requirements.txt

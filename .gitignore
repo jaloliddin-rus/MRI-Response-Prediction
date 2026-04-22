@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+# MRI Signal Prediction - .gitignore
+#
+# The raw dataset, cache, trained weights, and generated results are too large
+# (47 GB+ combined) to ship through GitHub. They stay on local disks; the
+# README explains how to obtain them. Old / broken files are also excluded so
+# they don't accidentally ship, while remaining on disk locally.
+# ---------------------------------------------------------------------------
+
+# --- Large data / artifact directories (not tracked in git) ---
+data/
+cache/
+models/
+results/
+output/
+figures/
+
+# --- Scratch / experimental content kept locally only ---
+temp/
+
+# --- Broken or superseded scripts (kept on disk, hidden from the repo) ---
+testing.py
+scripts/evaluation.py
+
+# --- Unused model pickles at the project root ---
+RegModel_PO2.sav
+RegModel_flow.sav
+*.sav
+
+# --- Legacy locations of the split files (now live under splits/) ---
+/data_list.pkl
+/train_indices.pkl
+/val_indices.pkl
+/test_indices.pkl
+
+# --- Model checkpoints anywhere in the tree ---
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+
+# --- Large binary data formats (defensive) ---
+*.tiff
+*.tif
+*.npy
+*.nii
+*.nii.gz
+*.nrrd
+*.mha
+*.mhd
+
+# --- Python bytecode / caches ---
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- Virtual environments ---
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# --- Distribution / build artifacts ---
+build/
+dist/
+*.egg-info/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Jupyter notebooks left running ---
+*.ipynb_checkpoints
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Experiment tracking (ClearML / MLflow local stores) ---
+mlruns/
+clearml.conf
