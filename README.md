@@ -32,7 +32,6 @@ MRI-Response-Prediction/
 │   ├── train_indices.pkl
 │   ├── val_indices.pkl
 │   └── test_indices.pkl
-├── timing_results/         # signal-generation timing benchmarks (paper asset)
 ├── requirements.txt
 ├── environment.yml
 └── LICENSE
@@ -178,11 +177,12 @@ python scripts/visualization/overall_perf_vis.py
 - `splits/data_list.pkl` stores paths relative to the project root (e.g.
   `data/K3/chunk_0/binary.tiff`), so it is portable — just drop your dataset
   into `data/` with the layout shown above.
-- Signal-generation timings (physics simulator vs neural inference) live
-  under `timing_results/` and were produced by
-  `benchmarks/signal_gen_comp.py` + `benchmarks/deepL_comp.py`. The physics
-  benchmark depends on the [VirtualMRI] package; see
+- `benchmarks/signal_gen_comp.py` and `benchmarks/deepL_comp.py` compare
+  the physics simulator with neural inference and write their outputs
+  (pickles, CSVs, PDF/PNG figures, LaTeX table) to `timing_results/`. The
+  physics benchmark depends on the [VirtualMRI] package; see
   `benchmarks/signal_gen_comp.py` for its own environment requirements.
+  `timing_results/` is gitignored — rerun the scripts to regenerate.
 
 ## Related publications
 
@@ -192,8 +192,8 @@ python scripts/visualization/overall_perf_vis.py
   The conference-paper code is preserved in [`conf-paper/`](conf-paper/).
 
 - **Journal paper (in preparation):** all code at the repository root
-  (`architectures/`, `src/`, `scripts/`, `benchmarks/`, `splits/`,
-  `timing_results/`) corresponds to the forthcoming journal paper.
+  (`architectures/`, `src/`, `scripts/`, `benchmarks/`, `splits/`)
+  corresponds to the forthcoming journal paper.
 
 ## Citation
 
